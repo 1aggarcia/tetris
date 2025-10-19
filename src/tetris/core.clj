@@ -7,7 +7,7 @@
 
 (defn scale
   "Scale up a scalar used for grid positioning to the pixel scalar to use
-   for rendering" 
+   for rendering"
   [scalar]
   (* scalar block-size-px))
 
@@ -15,47 +15,54 @@
   [(scale game/width) (scale game/height)])
 
 (defn setup []
-  ; Set frame rate to 30 frames per second.
-  (q/frame-rate 30)
-  ; Set color mode to HSB (HSV) instead of default RGB.
-  (q/color-mode :hsb)
-  ; setup function returns initial state. It contains
-  ; circle color and position.
-  {:color 0
-   :angle 0})
+  ; Set FPS
+  (q/frame-rate 2)
+  ; setup function returns initial state.
+  {:orientation :east})
 
 (defn update-state [state]
-  ; Update sketch state by changing circle color and position.
-  {:color (mod (+ (:color state) 0.7) 255)
-   :angle (+ (:angle state) 0.1)})
+  {:orientation (case (:orientation state)
+                  :north :east
+                  :east :south
+                  :south :west
+                  :west :north)})
 
 (defn draw-grid []
   (doall (for [i (range 1 game/width)]
-    (q/line [(scale i) 0] [(scale i) (scale game/height)])))
+           (q/line [(scale i) 0] [(scale i) (scale game/height)])))
 
   (doall (for [i (range 1 game/height)]
-    (q/line [0 (scale i)] [(scale game/height) (scale i)]))))
+           (q/line [0 (scale i)] [(scale game/height) (scale i)]))))
+
+(defn draw-tetronimo
+  "draw a tetronimo based on the orientation and center position passed in"
+  [state, tetronimo, [center-x, center-y]]
+  (let [rotated-blocks (game/rotate-blocks (:blocks tetronimo) (:orientation state))]
+    (apply q/fill (:color tetronimo))
+    (doall (for [[x-offset y-offset] rotated-blocks]
+             (q/rect
+              (+ (scale center-x) (scale x-offset))
+              (+ (scale center-y) (scale y-offset))
+              block-size-px
+              block-size-px)))))
 
 (defn draw-state [state]
   ; Clear the sketch by filling it with light-grey color.
   (q/background 240)
-  ; Set circle color.
-  (q/fill (:color state) 255 255)
-  ; Calculate x and y coordinates of the circle.
-  (let [angle (:angle state)
-        x (* 150 (q/cos angle))
-        y (* 150 (q/sin angle))]
-    ; Move origin point to the center of the sketch.
-    (q/with-translation [(/ (q/width) 2)
-                         (/ (q/height) 2)]
-      ; Draw the circle.
-      (q/ellipse x y 100 100)))
   ;; draw grid lines
-  (when game/show-grid? (draw-grid)))
+  (when game/show-grid? (draw-grid))
+
+  (draw-tetronimo state (:i game/tetronimos) [3, 3])
+  (draw-tetronimo state (:j game/tetronimos) [3, 6])
+  (draw-tetronimo state (:l game/tetronimos) [3, 9])
+  (draw-tetronimo state (:o game/tetronimos) [3, 12])
+  (draw-tetronimo state (:s game/tetronimos) [3, 15])
+  (draw-tetronimo state (:t game/tetronimos) [3, 18])
+  (draw-tetronimo state (:z game/tetronimos) [7, 2]))
 
 
 (q/defsketch tetris
-  :title "You spin my circle right round"
+  :title "Tetronimos Test"
   :size (get-game-size)
   ; setup function called only once, during sketch initialization.
   :setup setup
