@@ -37,7 +37,7 @@
   (and
    (:key-pressed? keyboard-state)
    (not= (:key-pressed? keyboard-state) (:key-pressed? last-state))
-   (some #(= % (:key-as-keyword keyboard-state)) [:up :w])))
+   (or (some #(= % (:key-as-keyword keyboard-state)) [:up :w]) false)))
 
 (defn update-state [state keyboard-state]
   (-> state
