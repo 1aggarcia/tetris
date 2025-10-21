@@ -12,7 +12,7 @@
     - Y position
 - Next N tetronimos (should be able to configure N)
 - Current Level
-- Frames until next move
+- Frames since last move 
 
 ## Enums
 - Tetronimos

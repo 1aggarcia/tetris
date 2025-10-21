@@ -23,6 +23,37 @@
                  ; why does VS code indent this so far in
                  })
 
+(defrecord State [current-tetronimo
+                  level
+                  time-since-last-move
+                  key-pressed?])
+
+(defrecord TetronimoState [key orientation x y])
+
+(defn get-init-state []
+  (State. (TetronimoState. :z :north 4 0) 0 0 false))
+
+(defn rotate-key-pressed? [last-state keyboard-state]
+  (and
+   (:key-pressed? keyboard-state)
+   (not= (:key-pressed? keyboard-state) (:key-pressed? last-state))
+   (some #(= % (:key-as-keyword keyboard-state)) [:up :w])))
+
+(defn update-state [state keyboard-state]
+  (-> state
+      (assoc :key-pressed? (:key-pressed? keyboard-state))
+      (update-in [:time-since-last-move] #(mod (inc %) 30))
+      (update-in [:current-tetronimo :y]
+                 (if (= (:time-since-last-move state) 0) inc identity))
+      (update-in [:current-tetronimo :orientation]
+                 #(if (rotate-key-pressed? state keyboard-state)
+                    (case %
+                      :north :east
+                      :east :south
+                      :south :west
+                      :west :north)
+                    %))))
+
 (defn rotate-blocks
   "rotate the blocks such that they are pointing in one of four directions:
    north, south, east, west"
