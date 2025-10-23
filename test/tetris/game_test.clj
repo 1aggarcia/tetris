@@ -40,6 +40,35 @@
 (def test-tetronimo (TetronimoState. :i :north 4 19))
 
 (deftest test-update-state
+  (testing "current-tetronimo"
+    (let [input (:current-tetronimo test-state)
+          expected (update-in input [:y] inc)]
+      (is
+       (=
+        (-> (game/update-state test-state test-keyboard-state)
+            :current-tetronimo)
+        expected)
+       "should move tetronimo if time-since-last-move is 0"))
+
+    (let [expected (:current-tetronimo test-state)]
+      (is
+       (=
+        (-> (assoc test-state :time-since-last-move 1)
+            (game/update-state test-keyboard-state)
+            :current-tetronimo)
+        expected)
+       "should not move tetronimo if time-since-last-move is not 0"))
+
+    (let [keyboard-state {:key-pressed? true :key-as-keyword :up}
+          input (:current-tetronimo test-state)
+          expected (assoc input :orientation :east :y 1)]
+      (is
+       (=
+        (-> (game/update-state test-state keyboard-state)
+            :current-tetronimo)
+        expected)
+       "should rotate tetronimo if rotate key is pressed")))
+
   (testing "frozen-tetronimos"
     (is
      (= (->

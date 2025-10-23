@@ -73,18 +73,31 @@
     (conj (:frozen-tetronimos last-state) (:current-tetronimo last-state))
     (:frozen-tetronimos last-state)))
 
+(defn update-current-tetronimo
+  "
+   - Move the tetronimo down if it is time to do so
+   - Rotate the tetronimo if the rotate key is pressed
+   - Spawn a new tetronimo if the current one touches the ground (TODO)
+   "
+  [state keyboard-state]
+  (let [tetronimo (:current-tetronimo state)]
+    (-> tetronimo
+        (update-in [:y]
+                   (if (= (:time-since-last-move state) 0) inc identity))
+
+        (update-in [:orientation]
+                   #(if (rotate-key-pressed? state keyboard-state)
+                      (case %
+                        :north :east
+                        :east :south
+                        :south :west
+                        :west :north)
+                      %)))))
+
 (defn update-state [state keyboard-state]
   (-> state
       (assoc :key-pressed? (:key-pressed? keyboard-state))
       (update-in [:time-since-last-move] #(mod (inc %) 30))
-      (update-in [:current-tetronimo :y]
-                 (if (= (:time-since-last-move state) 0) inc identity))
-      (assoc :frozen-tetronimos (update-frozen-tetronimos state))
-      (update-in [:current-tetronimo :orientation]
-                 #(if (rotate-key-pressed? state keyboard-state)
-                    (case %
-                      :north :east
-                      :east :south
-                      :south :west
-                      :west :north)
-                    %))))
+      (assoc
+       :frozen-tetronimos (update-frozen-tetronimos state)
+       :current-tetronimo (update-current-tetronimo state keyboard-state))))
