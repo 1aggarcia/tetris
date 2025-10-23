@@ -67,7 +67,17 @@
         (-> (game/update-state test-state keyboard-state)
             :current-tetronimo)
         expected)
-       "should rotate tetronimo if rotate key is pressed")))
+       "should rotate tetronimo if rotate key is pressed"))
+
+   (let [input-state (assoc test-state :current-tetronimo test-tetronimo)
+         expected (TetronimoState. :t :north 4 0)]
+     (is
+      (=
+       (-> (game/update-state input-state test-keyboard-state)
+           :current-tetronimo)
+       expected)
+      "should replace tetronimo when touching the ground"))
+    )
 
   (testing "frozen-tetronimos"
     (is

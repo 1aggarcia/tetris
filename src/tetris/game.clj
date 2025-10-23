@@ -33,6 +33,10 @@
 (defn get-init-state []
   (State. (TetronimoState. :z :north 4 0) [] 0 0 false))
 
+; TODO: use random seed to generate tetronimos
+(defn create-new-tetronimo []
+  (TetronimoState. :t :north 4 0))
+
 (defn rotate-blocks
   "rotate the blocks such that they are pointing in one of four directions:
    north, south, east, west"
@@ -77,27 +81,29 @@
   "
    - Move the tetronimo down if it is time to do so
    - Rotate the tetronimo if the rotate key is pressed
-   - Spawn a new tetronimo if the current one touches the ground (TODO)
+   - Spawn a new tetronimo if the current one touches the ground
    "
   [state keyboard-state]
-  (let [tetronimo (:current-tetronimo state)]
-    (-> tetronimo
-        (update-in [:y]
-                   (if (= (:time-since-last-move state) 0) inc identity))
+  (if (current-tetronimo-touching-ground? state)
+    (create-new-tetronimo)
+    (let [tetronimo (:current-tetronimo state)]
+      (-> tetronimo
+          (update-in [:y]
+                     (if (= (:time-since-last-move state) 0) inc identity))
 
-        (update-in [:orientation]
-                   #(if (rotate-key-pressed? state keyboard-state)
-                      (case %
-                        :north :east
-                        :east :south
-                        :south :west
-                        :west :north)
-                      %)))))
+          (update-in [:orientation]
+                     #(if (rotate-key-pressed? state keyboard-state)
+                        (case %
+                          :north :east
+                          :east :south
+                          :south :west
+                          :west :north)
+                        %))))))
 
 (defn update-state [state keyboard-state]
   (-> state
       (assoc :key-pressed? (:key-pressed? keyboard-state))
-      (update-in [:time-since-last-move] #(mod (inc %) 30))
+      (update-in [:time-since-last-move] #(mod (inc %) 5))
       (assoc
        :frozen-tetronimos (update-frozen-tetronimos state)
        :current-tetronimo (update-current-tetronimo state keyboard-state))))
