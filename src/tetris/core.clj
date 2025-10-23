@@ -58,7 +58,9 @@
   ;; draw grid lines
   (when game/show-grid? (draw-grid))
 
-  (draw-tetronimo (:current-tetronimo state)))
+  (draw-tetronimo (:current-tetronimo state))
+  (doall (for [tetronimo (:frozen-tetronimos state)]
+           (draw-tetronimo tetronimo))))
 
 
 (q/defsketch tetris
