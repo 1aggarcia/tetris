@@ -1,76 +1,16 @@
 (ns tetris.core
   (:require [quil.core :as q]
             [quil.middleware :as m]
-            [tetris.game :as game]))
-
-(def block-size-px 35)
-
-(defn scale
-  "Scale up a scalar used for grid positioning to the pixel scalar to use
-   for rendering"
-  [scalar]
-  (* scalar block-size-px))
-
-(defn get-game-size []
-  [(scale game/width) (scale game/height)])
-
-(defn setup []
-  ; Set FPS
-  (q/frame-rate 30)
-  ; setup function returns initial state.
-  (game/get-init-state))
-
-(defn get-keyboard-state
-  "Return current keyboard state as a map.
-   Only works inside of sketch functions."
-  []
-  {:key-pressed? (q/key-pressed?) :key-as-keyword (q/key-as-keyword)})
-
-(defn update-state [state]
-  (game/update-state state (get-keyboard-state)))
-
-(defn draw-grid []
-  (doall (for [i (range 1 game/width)]
-           (q/line [(scale i) 0] [(scale i) (scale game/height)])))
-
-  (doall (for [i (range 1 game/height)]
-           (q/line [0 (scale i)] [(scale game/height) (scale i)]))))
-
-(defn draw-tetronimo
-  "draw a tetronimo based on the orientation and center position passed in"
-  [tetronimo-state]
-  (let [tetronimo ((:key tetronimo-state) game/tetronimos)
-        orientation (:orientation tetronimo-state)
-        x (:x tetronimo-state)
-        y (:y tetronimo-state)
-        rotated-blocks (game/rotate-blocks (:blocks tetronimo) orientation)]
-    (apply q/fill (:color tetronimo))
-    (doall (for [[x-offset y-offset] rotated-blocks]
-             (q/rect
-              (+ (scale x) (scale x-offset))
-              (+ (scale y) (scale y-offset))
-              block-size-px
-              block-size-px)))))
-
-(defn draw-state [state]
-  ; Clear the sketch by filling it with light-grey color.
-  (q/background 240)
-  ;; draw grid lines
-  (when game/show-grid? (draw-grid))
-
-  (draw-tetronimo (:current-tetronimo state))
-  (doall (for [tetronimo (:frozen-tetronimos state)]
-           (draw-tetronimo tetronimo))))
-
+            [tetris.sketch :as sketch]))
 
 (q/defsketch tetris
   :title "Tetronimos Test"
-  :size (get-game-size)
+  :size (sketch/get-game-size)
   ; setup function called only once, during sketch initialization.
-  :setup setup
+  :setup sketch/setup
   ; update-state is called on each iteration before draw-state.
-  :update update-state
-  :draw draw-state
+  :update sketch/update-state
+  :draw sketch/draw-state
   :features [:keep-on-top]
   ; This sketch uses functional-mode middleware.
   ; Check quil wiki for more info about middlewares and particularly
