@@ -57,6 +57,6 @@
   ;; draw grid lines
   (when game/show-grid? (draw-grid))
 
-  (draw-tetronimo (:current-tetronimo state))
   (doall (for [tetronimo (:frozen-tetronimos state)]
-           (draw-tetronimo tetronimo))))
+           (draw-tetronimo tetronimo)))
+  (draw-tetronimo (:current-tetronimo state)))
