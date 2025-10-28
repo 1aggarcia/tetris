@@ -22,6 +22,8 @@
                      :blocks [[-1 -1] [0 -1] [0 0] [1 0]]}})
                  ; why does VS code indent this so far in
 
+(def tetronimo-keys (keys tetronimos))
+
 (defrecord State [current-tetronimo
                   frozen-tetronimos
                   level
@@ -30,12 +32,17 @@
 
 (defrecord TetronimoState [key orientation x y])
 
-(defn get-init-state []
-  (State. (TetronimoState. :z :north 4 0) [] 0 0 false))
+(defn generate-random-seed []
+  (rand-int Integer/MAX_VALUE))
 
-; TODO: use random seed to generate tetronimos
-(defn create-new-tetronimo []
-  (TetronimoState. :t :north 4 0))
+(defn create-new-tetronimo [random-seed]
+  (let [rand (java.util.Random. random-seed)
+        rand-idx (.nextInt rand (count tetronimo-keys))
+        rand-key (nth tetronimo-keys rand-idx)]
+  (TetronimoState. rand-key :north 4 0)))
+
+(defn get-init-state []
+  (State. (create-new-tetronimo (generate-random-seed)) [] 0 0 false))
 
 (defn rotate-blocks
   "rotate the blocks such that they are pointing in one of four directions:
@@ -83,9 +90,9 @@
    - Rotate the tetronimo if the rotate key is pressed
    - Spawn a new tetronimo if the current one touches the ground
    "
-  [state keyboard-state]
+  [state keyboard-state random-seed]
   (if (current-tetronimo-touching-ground? state)
-    (create-new-tetronimo)
+    (create-new-tetronimo random-seed)
     (let [tetronimo (:current-tetronimo state)]
       (-> tetronimo
           (update-in [:y]
@@ -100,10 +107,13 @@
                           :west :north)
                         %))))))
 
-(defn update-state [state keyboard-state]
+(defn update-state [state keyboard-state random-seed]
   (-> state
       (assoc :key-pressed? (:key-pressed? keyboard-state))
       (update-in [:time-since-last-move] #(mod (inc %) 5))
       (assoc
        :frozen-tetronimos (update-frozen-tetronimos state)
-       :current-tetronimo (update-current-tetronimo state keyboard-state))))
+       :current-tetronimo (update-current-tetronimo
+                           state
+                           keyboard-state
+                           random-seed))))

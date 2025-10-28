@@ -6,6 +6,24 @@
 (def test-state (game/get-init-state))
 (def test-keyboard-state {:key-pressed? false :key-as-keyword nil})
 
+(deftest test-create-new-tetronimo
+  (is (=
+       ; generate a tetronimo with all random seeds in range 7000
+       ; count up the frequency of each type and compare to reference
+       ; should be deterministic based on the seed
+       (->> (range 7000)
+            (map #(game/create-new-tetronimo %))
+            (map #(:key %))
+            frequencies)
+       {:t 1002, :s 1003, :o 1000, :l 998, :j 998, :i 1000, :z 999})
+      "should generate all tetronimo types with equal probability")
+
+  (is (every? #(= % (TetronimoState. nil :north 4 0))
+              (->> (range 7000)
+                   (map game/create-new-tetronimo)
+                   (map #(assoc % :key nil)))) ; key is random so don't compare it
+      "should set all properties besides key the same regardless of random seed"))
+
 (deftest test-rotate-key-pressed
   (is
    (true? (game/rotate-key-pressed?
@@ -45,7 +63,7 @@
           expected (update-in input [:y] inc)]
       (is
        (=
-        (-> (game/update-state test-state test-keyboard-state)
+        (-> (game/update-state test-state test-keyboard-state 0)
             :current-tetronimo)
         expected)
        "should move tetronimo if time-since-last-move is 0"))
@@ -54,7 +72,7 @@
       (is
        (=
         (-> (assoc test-state :time-since-last-move 1)
-            (game/update-state test-keyboard-state)
+            (game/update-state test-keyboard-state 0)
             :current-tetronimo)
         expected)
        "should not move tetronimo if time-since-last-move is not 0"))
@@ -64,34 +82,34 @@
           expected (assoc input :orientation :east :y 1)]
       (is
        (=
-        (-> (game/update-state test-state keyboard-state)
+        (-> (game/update-state test-state keyboard-state 0)
             :current-tetronimo)
         expected)
        "should rotate tetronimo if rotate key is pressed"))
 
-   (let [input-state (assoc test-state :current-tetronimo test-tetronimo)
-         expected (TetronimoState. :t :north 4 0)]
-     (is
-      (=
-       (-> (game/update-state input-state test-keyboard-state)
-           :current-tetronimo)
-       expected)
-      "should replace tetronimo when touching the ground"))
-    )
+    (let [input-state (assoc test-state :current-tetronimo test-tetronimo)
+          expected (TetronimoState. :t :north 4 0)]
+      (is
+       (=
+        (-> (game/update-state input-state test-keyboard-state 0)
+            :current-tetronimo)
+        expected)
+       "should replace tetronimo when touching the ground")))
 
   (testing "frozen-tetronimos"
     (is
      (= (->
          (game/update-state
           (assoc test-state :current-tetronimo test-tetronimo)
-          test-keyboard-state)
+          test-keyboard-state
+          0)
          :frozen-tetronimos)
         [test-tetronimo])
      "should freeze current tetronimo when touching the ground")
 
     (is
      (= (->
-         (game/update-state test-state test-keyboard-state)
+         (game/update-state test-state test-keyboard-state 0)
          :frozen-tetronimos)
         [])
      "should not freeze tetronimos when current tetronimo is above the ground")
@@ -103,7 +121,8 @@
        (= (->
            (game/update-state
             (assoc test-state :current-tetronimo rotated-tetronimo)
-            test-keyboard-state)
+            test-keyboard-state
+            0)
            :frozen-tetronimos)
           [rotated-tetronimo])
        "should freeze rotated tetronimo when touching the ground"))))

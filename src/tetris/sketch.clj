@@ -26,7 +26,7 @@
   {:key-pressed? (q/key-pressed?) :key-as-keyword (q/key-as-keyword)})
 
 (defn update-state [state]
-  (game/update-state state (get-keyboard-state)))
+  (game/update-state state (get-keyboard-state) (game/generate-random-seed)))
 
 (defn draw-grid []
   (doall (for [i (range 1 game/width)]
