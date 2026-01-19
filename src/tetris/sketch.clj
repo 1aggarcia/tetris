@@ -1,4 +1,5 @@
 (ns tetris.sketch
+  "I/O wrapper for reading and updating game state"
   (:require [quil.core :as q]
             [tetris.game :as game]))
 

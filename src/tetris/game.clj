@@ -1,4 +1,5 @@
-(ns tetris.game)
+(ns tetris.game
+  "Game logic and configuration decoupled from I/O")
 
 ; for development purposes
 (def show-grid? true)

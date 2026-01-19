@@ -10,6 +10,8 @@ Emacs - run cider, open `core.clj` and press `C-c C-k` to evaluate the file.
 
 REPL - run `(require 'tetris.core)`.
 
+Leiningen - run `lein run` (`lein test` to test)
+
 ## License
 
 Copyright © 2016 FIXME
