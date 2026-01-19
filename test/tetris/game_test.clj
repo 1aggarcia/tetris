@@ -1,5 +1,5 @@
 (ns tetris.game-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is testing are]]
             [tetris.game :as game])
   (:import [tetris.game TetronimoState]))
 
@@ -56,6 +56,20 @@
    "should return false when key was already pressed"))
 
 (def test-tetronimo (TetronimoState. :i :north 4 19))
+
+(deftest test-update-current-tetronimo
+  (testing "should update X based on key pressed"
+    (let [test-tetronimo (:current-tetronimo test-state)]
+      (are [test-key expected-x]
+           (= (assoc test-tetronimo :x expected-x :y 1)
+              (game/update-current-tetronimo
+               test-state
+               {:key-pressed? true :key-as-keyword test-key}
+               test-keyboard-state))
+        :left 3
+        :a 3
+        :right 5
+        :d 5))))
 
 (deftest test-update-state
   (testing "current-tetronimo"

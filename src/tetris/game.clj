@@ -66,11 +66,21 @@
          (apply max)
          (+ (:y tetronimo-state)))))
 
-(defn rotate-key-pressed? [last-state keyboard-state]
-  (and
-   (:key-pressed? keyboard-state)
-   (not= (:key-pressed? keyboard-state) (:key-pressed? last-state))
-   (or (some #(= % (:key-as-keyword keyboard-state)) [:up :w]) false)))
+(defn one-of-keys-pressed
+  "Return a function that determines if one of `keys` is pressed based on
+   the state passed in."
+  [keys] 
+  (fn [last-state keyboard-state]
+    (and
+      (:key-pressed? keyboard-state)
+      (not= (:key-pressed? keyboard-state) (:key-pressed? last-state))
+      (or (some #(= % (:key-as-keyword keyboard-state)) keys) false))))
+
+(def rotate-key-pressed? (one-of-keys-pressed [:up :w]))
+
+(def left-key-pressed? (one-of-keys-pressed [:left :a]))
+
+(def right-key-pressed? (one-of-keys-pressed [:right :d]))
 
 (defn current-tetronimo-touching-ground?
   [last-state]
@@ -88,7 +98,7 @@
 (defn update-current-tetronimo
   "
    - Move the tetronimo down if it is time to do so
-   - Rotate the tetronimo if the rotate key is pressed
+   - Move the tetronimo according to the keys pressed
    - Spawn a new tetronimo if the current one touches the ground
    "
   [state keyboard-state random-seed]
@@ -98,6 +108,12 @@
       (-> tetronimo
           (update-in [:y]
                      (if (= (:time-since-last-move state) 0) inc identity))
+          
+          (update-in [:x]
+                     #(cond
+                        (left-key-pressed? state keyboard-state) (dec %)
+                        (right-key-pressed? state keyboard-state) (inc %)
+                        :else %))
 
           (update-in [:orientation]
                      #(if (rotate-key-pressed? state keyboard-state)
