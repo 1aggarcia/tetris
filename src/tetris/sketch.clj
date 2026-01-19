@@ -3,8 +3,6 @@
   (:require [quil.core :as q]
             [tetris.game :as game]))
 
-;; TODO: add configurable method to show game state on the screen
-
 (def block-size-px 35)
 
 (defn scale
@@ -38,6 +36,12 @@
   (doall (for [i (range 1 game/height)]
            (q/line [0 (scale i)] [(scale game/height) (scale i)]))))
 
+(defn draw-state-text [state]
+  (do
+    (q/fill 0 0 0)
+    (q/text-size 13)
+    (q/text (game/state-to-string state) 10 23)))
+
 (defn draw-tetronimo
   "draw a tetronimo based on the orientation and center position passed in"
   [tetronimo-state]
@@ -62,4 +66,5 @@
 
   (doall (for [tetronimo (:frozen-tetronimos state)]
            (draw-tetronimo tetronimo)))
-  (draw-tetronimo (:current-tetronimo state)))
+  (draw-tetronimo (:current-tetronimo state))
+  (when game/show-state? (draw-state-text state)))

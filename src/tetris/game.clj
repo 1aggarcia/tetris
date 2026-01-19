@@ -1,8 +1,10 @@
 (ns tetris.game
-  "Game logic and configuration decoupled from I/O")
+  "Game logic and configuration decoupled from I/O"
+  (:require [clojure.pprint :as pp]))
 
 ; for development purposes
 (def show-grid? true)
+(def show-state? true)
 
 (def width 10)
 (def height 20)
@@ -30,6 +32,13 @@
                   level
                   time-since-last-move
                   key-pressed?])
+
+(defn state-to-string
+  "converts the state passed in to a readable string"
+  [state]
+  (with-out-str 
+    (binding [pp/*print-right-margin* 70]
+      (pp/pprint state))))
 
 (defrecord TetronimoState [key orientation x y])
 

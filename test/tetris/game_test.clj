@@ -1,10 +1,12 @@
 (ns tetris.game-test
   (:require [clojure.test :refer [deftest is testing are]]
-            [tetris.game :as game])
+            [tetris.game :as game]
+            [clojure.string :as string])
   (:import [tetris.game TetronimoState]))
 
 (def test-state (game/get-init-state))
 (def test-keyboard-state {:key-pressed? false :key-as-keyword nil})
+(def test-tetronimo (TetronimoState. :i :north 4 19))
 
 (deftest test-create-new-tetronimo
   (is (=
@@ -50,6 +52,17 @@
     :t :east 6
     :z :west 5))
 
+(deftest test-state-to-string
+  (is (=
+       (string/join "\n"
+                    ["{:current-tetronimo {:key :i, :orientation :north, :x 4, :y 19},"
+                     " :frozen-tetronimos [],"
+                     " :level 0,"
+                     " :time-since-last-move 0,"
+                     " :key-pressed? false}"
+                     ""])
+       (game/state-to-string (assoc test-state :current-tetronimo test-tetronimo)))))
+
 (deftest test-rotate-key-pressed
   (is
    (true? (game/rotate-key-pressed?
@@ -80,8 +93,6 @@
             (assoc test-state :key-pressed? true)
             {:key-pressed? true :key-as-keyword :up}))
    "should return false when key was already pressed"))
-
-(def test-tetronimo (TetronimoState. :i :north 4 19))
 
 (deftest test-update-current-tetronimo
   (testing "should update X based on key pressed"
