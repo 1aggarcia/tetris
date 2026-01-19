@@ -40,7 +40,7 @@
   (let [rand (java.util.Random. random-seed)
         rand-idx (.nextInt rand (count tetronimo-keys))
         rand-key (nth tetronimo-keys rand-idx)]
-  (TetronimoState. rand-key :north 4 0)))
+    (TetronimoState. rand-key :north 4 0)))
 
 (defn get-init-state []
   (State. (create-new-tetronimo (generate-random-seed)) [] 0 0 false))
@@ -56,6 +56,26 @@
            :east [(- y) x]
            :west [y (- x)])) blocks))
 
+(defn get-min-tetronimo-x
+  "return the smallest X position occupied by the tetronimo passed in"
+  [tetronimo-state]
+  (let [tetronimo ((:key tetronimo-state) tetronimos)
+        rotated (rotate-blocks (:blocks tetronimo) (:orientation tetronimo-state))]
+    (->> rotated
+         (map (fn [[x _]] x))
+         (apply min)
+         (+ (:x tetronimo-state)))))
+
+(defn get-max-tetronimo-x
+  "return the largest X position occupied by the tetronimo passed in"
+  [tetronimo-state]
+  (let [tetronimo ((:key tetronimo-state) tetronimos)
+        rotated (rotate-blocks (:blocks tetronimo) (:orientation tetronimo-state))]
+    (->> rotated
+         (map (fn [[x _]] x))
+         (apply max)
+         (+ (:x tetronimo-state)))))
+
 (defn get-max-tetronimo-y
   "return the largest Y position occupied by the tetronimo passed in"
   [tetronimo-state]
@@ -69,18 +89,30 @@
 (defn one-of-keys-pressed
   "Return a function that determines if one of `keys` is pressed based on
    the state passed in."
-  [keys] 
+  [keys]
   (fn [last-state keyboard-state]
     (and
-      (:key-pressed? keyboard-state)
-      (not= (:key-pressed? keyboard-state) (:key-pressed? last-state))
-      (or (some #(= % (:key-as-keyword keyboard-state)) keys) false))))
+     (:key-pressed? keyboard-state)
+     (not= (:key-pressed? keyboard-state) (:key-pressed? last-state))
+     (or (some #(= % (:key-as-keyword keyboard-state)) keys) false))))
 
 (def rotate-key-pressed? (one-of-keys-pressed [:up :w]))
 
 (def left-key-pressed? (one-of-keys-pressed [:left :a]))
 
 (def right-key-pressed? (one-of-keys-pressed [:right :d]))
+
+;; TODO: check for collision with other tetronimos
+(defn can-move-left? [last-state]
+  (>
+   (get-min-tetronimo-x (:current-tetronimo last-state))
+   0))
+
+;; TODO: check for collision with other tetronimos
+(defn can-move-right? [last-state]
+  (<
+   (get-max-tetronimo-x (:current-tetronimo last-state))
+   (dec width)))
 
 (defn current-tetronimo-touching-ground?
   [last-state]
@@ -95,6 +127,18 @@
     (conj (:frozen-tetronimos last-state) (:current-tetronimo last-state))
     (:frozen-tetronimos last-state)))
 
+(defn update-tetronimo-x [last-x state keyboard-state]
+  (cond
+    (and
+     (left-key-pressed? state keyboard-state)
+     (can-move-left? state))
+    (dec last-x)
+    (and
+     (right-key-pressed? state keyboard-state)
+     (can-move-right? state))
+    (inc last-x)
+    :else last-x))
+
 (defn update-current-tetronimo
   "
    - Move the tetronimo down if it is time to do so
@@ -108,13 +152,11 @@
       (-> tetronimo
           (update-in [:y]
                      (if (= (:time-since-last-move state) 0) inc identity))
-          
-          (update-in [:x]
-                     #(cond
-                        (left-key-pressed? state keyboard-state) (dec %)
-                        (right-key-pressed? state keyboard-state) (inc %)
-                        :else %))
 
+          (update-in [:x]
+                     #(update-tetronimo-x % state keyboard-state))
+
+          ;; TODO: account for rotating while colliding with something
           (update-in [:orientation]
                      #(if (rotate-key-pressed? state keyboard-state)
                         (case %

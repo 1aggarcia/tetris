@@ -3,6 +3,8 @@
   (:require [quil.core :as q]
             [tetris.game :as game]))
 
+;; TODO: add configurable method to show game state on the screen
+
 (def block-size-px 35)
 
 (defn scale

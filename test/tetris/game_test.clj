@@ -24,6 +24,32 @@
                    (map #(assoc % :key nil)))) ; key is random so don't compare it
       "should set all properties besides key the same regardless of random seed"))
 
+(deftest test-get-min-tetronimo-x
+  (are [key orientation expected]
+       (= expected
+          (game/get-min-tetronimo-x
+           (TetronimoState. key orientation 5 0)))
+    :i :north 3
+    :j :north 4
+    :l :south 4
+    :o :south 5
+    :s :east 5
+    :t :east 5
+    :z :west 4))
+
+(deftest test-get-max-tetronimo-x
+  (are [key orientation expected]
+       (= expected
+          (game/get-max-tetronimo-x
+           (TetronimoState. key orientation 5 0)))
+    :i :north 6
+    :j :north 6
+    :l :south 6
+    :o :south 6
+    :s :east 6
+    :t :east 6
+    :z :west 5))
+
 (deftest test-rotate-key-pressed
   (is
    (true? (game/rotate-key-pressed?
@@ -70,6 +96,17 @@
         :a 3
         :right 5
         :d 5))))
+
+(deftest test-can-move-left
+  (is
+   (true? (game/can-move-left? test-state))
+   "not touching left wall")
+
+  (is
+   (false? (let [test-tetronimo (TetronimoState. :i :west 0 0)
+                 test-state-blocked (assoc test-state :current-tetronimo test-tetronimo)]
+             (game/can-move-left? test-state-blocked)))
+   "touching left wall"))
 
 (deftest test-update-state
   (testing "current-tetronimo"
