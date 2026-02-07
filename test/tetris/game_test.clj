@@ -4,6 +4,8 @@
             [clojure.string :as string])
   (:import [tetris.game TetronimoState]))
 
+; TODO: use humane-test-output to get more readable test failure messages
+
 (def test-state (game/get-init-state))
 (def test-keyboard-state {:key-pressed? false :key-as-keyword nil})
 (def test-tetronimo (TetronimoState. :i :north 4 19))
@@ -53,15 +55,13 @@
     :z :west 5))
 
 (deftest test-state-to-string
-  (is (=
-       (string/join "\n"
-                    ["{:current-tetronimo {:key :i, :orientation :north, :x 4, :y 19},"
-                     " :frozen-tetronimos [],"
-                     " :level 0,"
-                     " :time-since-last-move 0,"
-                     " :key-pressed? false}"
-                     ""])
-       (game/state-to-string (assoc test-state :current-tetronimo test-tetronimo)))))
+  (let [expected ["{:current-tetronimo {:key :i, :orientation :north, :x 4, :y 19},"
+                  " :frozen-blocks {},"
+                  " :level 0,"
+                  " :time-since-last-move 0,"
+                  " :key-pressed? false}"]
+        actual (game/state-to-string (assoc test-state :current-tetronimo test-tetronimo))]
+    (is (= expected (clojure.string/split-lines actual)))))
 
 (deftest test-rotate-key-pressed
   (is
@@ -158,22 +158,22 @@
         expected)
        "should replace tetronimo when touching the ground")))
 
-  (testing "frozen-tetronimos"
+  (testing "frozen-blocks"
     (is
      (= (->
          (game/update-state
           (assoc test-state :current-tetronimo test-tetronimo)
           test-keyboard-state
           0)
-         :frozen-tetronimos)
-        [test-tetronimo])
+         :frozen-blocks)
+        {[2 19] :i [3 19] :i [4 19] :i [5 19] :i})
      "should freeze current tetronimo when touching the ground")
 
     (is
      (= (->
          (game/update-state test-state test-keyboard-state 0)
-         :frozen-tetronimos)
-        [])
+         :frozen-blocks)
+        {})
      "should not freeze tetronimos when current tetronimo is above the ground")
 
     (let [rotated-tetronimo (assoc test-tetronimo
@@ -185,6 +185,6 @@
             (assoc test-state :current-tetronimo rotated-tetronimo)
             test-keyboard-state
             0)
-           :frozen-tetronimos)
-          [rotated-tetronimo])
+           :frozen-blocks)
+          {[4 16] :i [4 17] :i [4 18] :i [4 19] :i})
        "should freeze rotated tetronimo when touching the ground"))))

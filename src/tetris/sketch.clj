@@ -42,6 +42,14 @@
     (q/text-size 13)
     (q/text (game/state-to-string state) 10 23)))
 
+(defn draw-frozen-blocks
+  "draw all frozen blocks"
+  [frozen-blocks]
+  (doseq [[[x y] key] frozen-blocks]
+    (let [color (get-in game/tetronimos [key :color])]
+      (apply q/fill color)
+      (q/rect (scale x) (scale y) block-size-px block-size-px))))
+
 (defn draw-tetronimo
   "draw a tetronimo based on the orientation and center position passed in"
   [tetronimo-state]
@@ -62,9 +70,8 @@
   ; Clear the sketch by filling it with light-grey color.
   (q/background 240)
   ;; draw grid lines
-  (when game/show-grid? (draw-grid))
+  (when game/show-grid? (draw-grid)) 
 
-  (doall (for [tetronimo (:frozen-tetronimos state)]
-           (draw-tetronimo tetronimo)))
+  (draw-frozen-blocks (:frozen-blocks state))
   (draw-tetronimo (:current-tetronimo state))
   (when game/show-state? (draw-state-text state)))

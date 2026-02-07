@@ -28,7 +28,7 @@
 (def tetronimo-keys (keys tetronimos))
 
 (defrecord State [current-tetronimo
-                  frozen-tetronimos
+                  frozen-blocks
                   level
                   time-since-last-move
                   key-pressed?])
@@ -36,7 +36,7 @@
 (defn state-to-string
   "converts the state passed in to a readable string"
   [state]
-  (with-out-str 
+  (with-out-str
     (binding [pp/*print-right-margin* 70]
       (pp/pprint state))))
 
@@ -52,7 +52,7 @@
     (TetronimoState. rand-key :north 4 0)))
 
 (defn get-init-state []
-  (State. (create-new-tetronimo (generate-random-seed)) [] 0 0 false))
+  (State. (create-new-tetronimo (generate-random-seed)) {} 0 0 false))
 
 (defn rotate-blocks
   "rotate the blocks such that they are pointing in one of four directions:
@@ -129,12 +129,16 @@
    (get-max-tetronimo-y (:current-tetronimo last-state))
    (dec height)))
 
-(defn update-frozen-tetronimos
-  "Copy the current tetronimo to the frozen tetronimos if touching the ground"
-  [last-state]
-  (if (current-tetronimo-touching-ground? last-state)
-    (conj (:frozen-tetronimos last-state) (:current-tetronimo last-state))
-    (:frozen-tetronimos last-state)))
+(defn update-frozen-blocks
+  "Copy all blocks from the current tetronimo to the frozen blocks if colliding"
+  [{:keys [current-tetronimo frozen-blocks] :as last-state}]
+  (let [{:keys [x y key orientation]} current-tetronimo]
+    (if (current-tetronimo-touching-ground? last-state)
+      (as-> (get-in tetronimos [key :blocks]) $
+        (rotate-blocks $ orientation)
+        (map (fn [[bx by]] [(+ bx x) (+ by y)]) $)
+        (reduce #(assoc %1 %2 key) frozen-blocks $))
+      frozen-blocks)))
 
 (defn update-tetronimo-x [last-x state keyboard-state]
   (cond
@@ -180,7 +184,7 @@
       (assoc :key-pressed? (:key-pressed? keyboard-state))
       (update-in [:time-since-last-move] #(mod (inc %) 5))
       (assoc
-       :frozen-tetronimos (update-frozen-tetronimos state)
+       :frozen-blocks (update-frozen-blocks state)
        :current-tetronimo (update-current-tetronimo
                            state
                            keyboard-state
