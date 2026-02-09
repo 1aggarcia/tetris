@@ -108,6 +108,45 @@
         :right 5
         :d 5))))
 
+(deftest test-get-blocks
+  (let [input (TetronimoState. :s :north 0 0)
+        expected [[-1 0] [0 0] [0 -1] [1 -1]]
+        actual (game/get-blocks input)]
+    (is (= expected actual) "returns correct blocks without offset"))
+
+  (let [input (TetronimoState. :s :north 1 2)
+        expected [[0 2] [1 2] [1 1] [2 1]]
+        actual (game/get-blocks input)]
+    (is (= expected actual) "returns correct blocks with offset"))
+
+  (let [input (TetronimoState. :s :east 0 0)
+        expected [[0 -1] [0 0] [1 0] [1 1]]
+        actual (game/get-blocks input)]
+    (is (= expected actual) "returns correct blocks with rotation")))
+
+(deftest test-block-colliding-bottom
+  (let [frozen-blocks {[3 10] :i}]
+    (let [result (game/block-colliding-bottom? frozen-blocks [3 9])]
+      (is
+       (true? result)
+       "should detect block touching frozen block"))
+
+    (let [result (game/block-colliding-bottom? frozen-blocks [3 8])]
+      (is
+       (false? result)
+       "should not detect block above frozen block"))
+
+    (let [result (game/block-colliding-bottom? frozen-blocks [4 9])]
+      (is
+       (false? result)
+       "should not detect block beside frozen block"))
+
+    (let [one-above-ground (dec game/height)
+          result (game/block-colliding-bottom? frozen-blocks [3 one-above-ground])]
+      (is
+       (true? result)
+       "should detect block just above ground"))))
+
 (deftest test-can-move-left
   (is
    (true? (game/can-move-left? test-state))

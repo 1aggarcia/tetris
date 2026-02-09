@@ -85,15 +85,12 @@
          (apply max)
          (+ (:x tetronimo-state)))))
 
-(defn get-max-tetronimo-y
-  "return the largest Y position occupied by the tetronimo passed in"
-  [tetronimo-state]
-  (let [tetronimo ((:key tetronimo-state) tetronimos)
-        rotated (rotate-blocks (:blocks tetronimo) (:orientation tetronimo-state))]
-    (->> rotated
-         (map (fn [[_ y]] y))
-         (apply max)
-         (+ (:y tetronimo-state)))))
+(defn get-blocks
+  "Calculate the blocks occupied by a tetronimo from the tetronimo state"
+  [{:keys [x y key orientation]}]
+  (as-> (get-in tetronimos [key :blocks]) $
+    (rotate-blocks $ orientation)
+    (map (fn [[bx by]] [(+ bx x) (+ by y)]) $)))
 
 (defn one-of-keys-pressed
   "Return a function that determines if one of `keys` is pressed based on
@@ -123,22 +120,27 @@
    (get-max-tetronimo-x (:current-tetronimo last-state))
    (dec width)))
 
-(defn current-tetronimo-touching-ground?
-  [last-state]
-  (>=
-   (get-max-tetronimo-y (:current-tetronimo last-state))
-   (dec height)))
+(defn block-colliding-bottom?
+  [frozen-blocks [x y]]
+  (let [y-below (inc y)]
+    (or
+     (>= y-below height)
+     (contains? frozen-blocks [x y-below]))))
+
+(defn colliding-bottom?
+  [{:keys [current-tetronimo frozen-blocks]}]
+  (->> (get-blocks current-tetronimo)
+       (some (partial block-colliding-bottom? frozen-blocks))
+       (boolean)))
 
 (defn update-frozen-blocks
   "Copy all blocks from the current tetronimo to the frozen blocks if colliding"
   [{:keys [current-tetronimo frozen-blocks] :as last-state}]
-  (let [{:keys [x y key orientation]} current-tetronimo]
-    (if (current-tetronimo-touching-ground? last-state)
-      (as-> (get-in tetronimos [key :blocks]) $
-        (rotate-blocks $ orientation)
-        (map (fn [[bx by]] [(+ bx x) (+ by y)]) $)
-        (reduce #(assoc %1 %2 key) frozen-blocks $))
-      frozen-blocks)))
+  (if (colliding-bottom? last-state)
+    (let [key (:key current-tetronimo)
+          blocks (get-blocks current-tetronimo)]
+      (reduce #(assoc %1 %2 key) frozen-blocks blocks))
+    frozen-blocks))
 
 (defn update-tetronimo-x [last-x state keyboard-state]
   (cond
@@ -159,7 +161,9 @@
    - Spawn a new tetronimo if the current one touches the ground
    "
   [state keyboard-state random-seed]
-  (if (current-tetronimo-touching-ground? state)
+  (if (colliding-bottom? state)
+    ; TODO: Game over instead if the block is also colliding on top
+    ; Right now this will spawn new blocks on every frame if it collides on top
     (create-new-tetronimo random-seed)
     (let [tetronimo (:current-tetronimo state)]
       (-> tetronimo
