@@ -108,50 +108,50 @@
 
 (def right-key-pressed? (one-of-keys-pressed [:right :d]))
 
-(defn block-colliding-bottom?
-  [frozen-blocks [x y]]
-  (let [y-below (inc y)]
+(defn block-colliding?
+  "Determine if the block passed is colliding with one of the frozen blocks.
+   
+   - `frozen-blocks`: map of `[x y] -> key`, representing frozen blocks on the grid
+   - `[dx dy]`: change in X and Y to apply to the block to determine if there is a
+     collision in that direction
+   - `[x y]`: the block to test collision against"
+  [frozen-blocks [dx dy] [x y]]
+  (let [new-x (+ x dx)
+        new-y (+ y dy)]
     (or
-     (>= y-below height)
-     (contains? frozen-blocks [x y-below]))))
+     ; TODO: detect collision on top
+     (< new-x 0)
+     (>= new-x width)
+     (>= new-y height)
+     (contains? frozen-blocks [new-x new-y]))))
 
-(defn block-colliding-left?
-  [frozen-blocks [x y]]
-  (let [x-left (dec x)]
-    (or
-     (< x-left 0)
-     (contains? frozen-blocks [x-left y]))))
-
-(defn block-colliding-right?
-  [frozen-blocks [x y]]
-  (let [x-right (inc x)]
-    (or
-     (>= x-right width)
-     (contains? frozen-blocks [x-right y]))))
+(defn tetronimo-colliding?
+  "Determine if the current tetronimo in state is colliding with one of the
+   frozen tetronimos.
+   
+   - `[dx dy]`: change in X and Y to apply to the tetronimo to determine if there
+     is a collision in that direction"
+  [{:keys [current-tetronimo frozen-blocks]} [dx dy]]
+  (->> (get-blocks current-tetronimo)
+       (some (partial block-colliding? frozen-blocks [dx dy]))
+       (boolean)))
 
 (defn can-move-left?
-  [{:keys [current-tetronimo frozen-blocks]}]
-  (->> (get-blocks current-tetronimo)
-       (some (partial block-colliding-left? frozen-blocks))
-       (boolean)
-       (not)))
+  [last-state]
+  (not (tetronimo-colliding? last-state [-1 0])))
 
 (defn can-move-right?
-  [{:keys [current-tetronimo frozen-blocks]}]
-  (->> (get-blocks current-tetronimo)
-       (some (partial block-colliding-right? frozen-blocks))
-       (boolean)
-       (not)))
+  [last-state]
+ (not (tetronimo-colliding? last-state [1 0])))
 
 (defn colliding-bottom?
-  [{:keys [current-tetronimo frozen-blocks]}]
-  (->> (get-blocks current-tetronimo)
-       (some (partial block-colliding-bottom? frozen-blocks))
-       (boolean)))
+  [last-state]
+  (tetronimo-colliding? last-state [0 1]))
 
 (defn update-frozen-blocks
   "Copy all blocks from the current tetronimo to the frozen blocks if colliding"
   [{:keys [current-tetronimo frozen-blocks] :as last-state}]
+  ; TODO: allow grace period for blocks to move even if colliding on the bottom
   (if (colliding-bottom? last-state)
     (let [key (:key current-tetronimo)
           blocks (get-blocks current-tetronimo)]

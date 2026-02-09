@@ -125,27 +125,17 @@
     (is (= expected actual) "returns correct blocks with rotation")))
 
 (deftest test-block-colliding-bottom
-  (let [frozen-blocks {[3 10] :i}]
-    (let [result (game/block-colliding-bottom? frozen-blocks [3 9])]
-      (is
-       (true? result)
-       "should detect block touching frozen block"))
+  (are [block-delta block]
+       (let [frozen-blocks {[5 5] :i}]
+         (true? (game/block-colliding? frozen-blocks block-delta block)))
+    [0 1] [5 4] ; above frozen block
+    [-1 0] [6 5] ; left of frozen block
+    [1 0] [4 5] ; right of frozen block
+    [0 1] [5 (dec game/height)]) ; just above the ground
 
-    (let [result (game/block-colliding-bottom? frozen-blocks [3 8])]
-      (is
-       (false? result)
-       "should not detect block above frozen block"))
-
-    (let [result (game/block-colliding-bottom? frozen-blocks [4 9])]
-      (is
-       (false? result)
-       "should not detect block beside frozen block"))
-
-    (let [one-above-ground (dec game/height)
-          result (game/block-colliding-bottom? frozen-blocks [3 one-above-ground])]
-      (is
-       (true? result)
-       "should detect block just above ground"))))
+  (is
+   (false? (game/block-colliding? {[5 5] :i} [0 1] [5 3]))
+   "should not detect block outside collision bounds"))
 
 (deftest test-can-move-left
   (is
