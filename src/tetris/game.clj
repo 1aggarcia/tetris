@@ -9,7 +9,7 @@
 (def width 10)
 (def height 20)
 
-(def tetronimos {:i {:color [0 255 255]
+(def tetrominos {:i {:color [0 255 255]
                      :blocks [[-2 0] [-1 0] [0 0] [1 0]]}
                  :j {:color [0 0 255]
                      :blocks [[-1 -1] [-1 0] [0 0] [1 0]]}
@@ -25,9 +25,9 @@
                      :blocks [[-1 -1] [0 -1] [0 0] [1 0]]}})
                  ; why does VS code indent this so far in
 
-(def tetronimo-keys (keys tetronimos))
+(def tetromino-keys (keys tetrominos))
 
-(defrecord State [current-tetronimo
+(defrecord State [current-tetromino
                   frozen-blocks
                   level
                   time-since-last-move
@@ -40,19 +40,19 @@
     (binding [pp/*print-right-margin* 70]
       (pp/pprint state))))
 
-(defrecord TetronimoState [key orientation x y])
+(defrecord TetrominoState [key orientation x y])
 
 (defn generate-random-seed []
   (rand-int Integer/MAX_VALUE))
 
-(defn create-new-tetronimo [random-seed]
+(defn create-new-tetromino [random-seed]
   (let [rand (java.util.Random. random-seed)
-        rand-idx (.nextInt rand (count tetronimo-keys))
-        rand-key (nth tetronimo-keys rand-idx)]
-    (TetronimoState. rand-key :north 4 0)))
+        rand-idx (.nextInt rand (count tetromino-keys))
+        rand-key (nth tetromino-keys rand-idx)]
+    (TetrominoState. rand-key :north 4 0)))
 
 (defn get-init-state []
-  (State. (create-new-tetronimo (generate-random-seed)) {} 0 0 false))
+  (State. (create-new-tetromino (generate-random-seed)) {} 0 0 false))
 
 (defn rotate-blocks
   "rotate the blocks such that they are pointing in one of four directions:
@@ -65,30 +65,30 @@
            :east [(- y) x]
            :west [y (- x)])) blocks))
 
-(defn get-min-tetronimo-x
-  "return the smallest X position occupied by the tetronimo passed in"
-  [tetronimo-state]
-  (let [tetronimo ((:key tetronimo-state) tetronimos)
-        rotated (rotate-blocks (:blocks tetronimo) (:orientation tetronimo-state))]
+(defn get-min-tetromino-x
+  "return the smallest X position occupied by the tetromino passed in"
+  [tetromino-state]
+  (let [tetromino ((:key tetromino-state) tetrominos)
+        rotated (rotate-blocks (:blocks tetromino) (:orientation tetromino-state))]
     (->> rotated
          (map (fn [[x _]] x))
          (apply min)
-         (+ (:x tetronimo-state)))))
+         (+ (:x tetromino-state)))))
 
-(defn get-max-tetronimo-x
-  "return the largest X position occupied by the tetronimo passed in"
-  [tetronimo-state]
-  (let [tetronimo ((:key tetronimo-state) tetronimos)
-        rotated (rotate-blocks (:blocks tetronimo) (:orientation tetronimo-state))]
+(defn get-max-tetromino-x
+  "return the largest X position occupied by the tetromino passed in"
+  [tetromino-state]
+  (let [tetromino ((:key tetromino-state) tetrominos)
+        rotated (rotate-blocks (:blocks tetromino) (:orientation tetromino-state))]
     (->> rotated
          (map (fn [[x _]] x))
          (apply max)
-         (+ (:x tetronimo-state)))))
+         (+ (:x tetromino-state)))))
 
 (defn get-blocks
-  "Calculate the blocks occupied by a tetronimo from the tetronimo state"
+  "Calculate the blocks occupied by a tetromino from the tetromino state"
   [{:keys [x y key orientation]}]
-  (as-> (get-in tetronimos [key :blocks]) $
+  (as-> (get-in tetrominos [key :blocks]) $
     (rotate-blocks $ orientation)
     (map (fn [[bx by]] [(+ bx x) (+ by y)]) $)))
 
@@ -125,40 +125,40 @@
      (>= new-y height)
      (contains? frozen-blocks [new-x new-y]))))
 
-(defn tetronimo-colliding?
-  "Determine if the current tetronimo in state is colliding with one of the
-   frozen tetronimos.
+(defn tetromino-colliding?
+  "Determine if the current tetromino in state is colliding with one of the
+   frozen tetrominos.
    
-   - `[dx dy]`: change in X and Y to apply to the tetronimo to determine if there
+   - `[dx dy]`: change in X and Y to apply to the tetromino to determine if there
      is a collision in that direction"
-  [{:keys [current-tetronimo frozen-blocks]} [dx dy]]
-  (->> (get-blocks current-tetronimo)
+  [{:keys [current-tetromino frozen-blocks]} [dx dy]]
+  (->> (get-blocks current-tetromino)
        (some (partial block-colliding? frozen-blocks [dx dy]))
        (boolean)))
 
 (defn can-move-left?
   [last-state]
-  (not (tetronimo-colliding? last-state [-1 0])))
+  (not (tetromino-colliding? last-state [-1 0])))
 
 (defn can-move-right?
   [last-state]
- (not (tetronimo-colliding? last-state [1 0])))
+  (not (tetromino-colliding? last-state [1 0])))
 
 (defn colliding-bottom?
   [last-state]
-  (tetronimo-colliding? last-state [0 1]))
+  (tetromino-colliding? last-state [0 1]))
 
 (defn update-frozen-blocks
-  "Copy all blocks from the current tetronimo to the frozen blocks if colliding"
-  [{:keys [current-tetronimo frozen-blocks] :as last-state}]
+  "Copy all blocks from the current tetromino to the frozen blocks if colliding"
+  [{:keys [current-tetromino frozen-blocks] :as last-state}]
   ; TODO: allow grace period for blocks to move even if colliding on the bottom
   (if (colliding-bottom? last-state)
-    (let [key (:key current-tetronimo)
-          blocks (get-blocks current-tetronimo)]
+    (let [key (:key current-tetromino)
+          blocks (get-blocks current-tetromino)]
       (reduce #(assoc %1 %2 key) frozen-blocks blocks))
     frozen-blocks))
 
-(defn update-tetronimo-x [last-x state keyboard-state]
+(defn update-tetromino-x [last-x state keyboard-state]
   (cond
     (and
      (left-key-pressed? state keyboard-state)
@@ -170,24 +170,24 @@
     (inc last-x)
     :else last-x))
 
-(defn update-current-tetronimo
+(defn update-current-tetromino
   "
-   - Move the tetronimo down if it is time to do so
-   - Move the tetronimo according to the keys pressed
-   - Spawn a new tetronimo if the current one touches the ground
+   - Move the tetromino down if it is time to do so
+   - Move the tetromino according to the keys pressed
+   - Spawn a new tetromino if the current one touches the ground
    "
   [state keyboard-state random-seed]
   (if (colliding-bottom? state)
     ; TODO: Game over instead if the block is also colliding on top
     ; Right now this will spawn new blocks on every frame if it collides on top
-    (create-new-tetronimo random-seed)
-    (let [tetronimo (:current-tetronimo state)]
-      (-> tetronimo
+    (create-new-tetromino random-seed)
+    (let [tetromino (:current-tetromino state)]
+      (-> tetromino
           (update-in [:y]
                      (if (= (:time-since-last-move state) 0) inc identity))
 
           (update-in [:x]
-                     #(update-tetronimo-x % state keyboard-state))
+                     #(update-tetromino-x % state keyboard-state))
 
           ;; TODO: account for rotating while colliding with something
           (update-in [:orientation]
@@ -205,7 +205,7 @@
       (update-in [:time-since-last-move] #(mod (inc %) 5))
       (assoc
        :frozen-blocks (update-frozen-blocks state)
-       :current-tetronimo (update-current-tetronimo
+       :current-tetromino (update-current-tetromino
                            state
                            keyboard-state
                            random-seed))))

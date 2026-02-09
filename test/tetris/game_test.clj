@@ -2,37 +2,37 @@
   (:require [clojure.test :refer [deftest is testing are]]
             [tetris.game :as game]
             [clojure.string :as string])
-  (:import [tetris.game TetronimoState]))
+  (:import [tetris.game TetrominoState]))
 
 ; TODO: use humane-test-output to get more readable test failure messages
 
 (def test-state (game/get-init-state))
 (def test-keyboard-state {:key-pressed? false :key-as-keyword nil})
-(def test-tetronimo (TetronimoState. :i :north 4 19))
+(def test-tetromino (TetrominoState. :i :north 4 19))
 
-(deftest test-create-new-tetronimo
+(deftest test-create-new-tetromino
   (is (=
-       ; generate a tetronimo with all random seeds in range 7000
+       ; generate a tetromino with all random seeds in range 7000
        ; count up the frequency of each type and compare to reference
        ; should be deterministic based on the seed
        (->> (range 7000)
-            (map #(game/create-new-tetronimo %))
+            (map #(game/create-new-tetromino %))
             (map #(:key %))
             frequencies)
        {:t 1002, :s 1003, :o 1000, :l 998, :j 998, :i 1000, :z 999})
-      "should generate all tetronimo types with equal probability")
+      "should generate all tetromino types with equal probability")
 
-  (is (every? #(= % (TetronimoState. nil :north 4 0))
+  (is (every? #(= % (TetrominoState. nil :north 4 0))
               (->> (range 7000)
-                   (map game/create-new-tetronimo)
+                   (map game/create-new-tetromino)
                    (map #(assoc % :key nil)))) ; key is random so don't compare it
       "should set all properties besides key the same regardless of random seed"))
 
-(deftest test-get-min-tetronimo-x
+(deftest test-get-min-tetromino-x
   (are [key orientation expected]
        (= expected
-          (game/get-min-tetronimo-x
-           (TetronimoState. key orientation 5 0)))
+          (game/get-min-tetromino-x
+           (TetrominoState. key orientation 5 0)))
     :i :north 3
     :j :north 4
     :l :south 4
@@ -41,11 +41,11 @@
     :t :east 5
     :z :west 4))
 
-(deftest test-get-max-tetronimo-x
+(deftest test-get-max-tetromino-x
   (are [key orientation expected]
        (= expected
-          (game/get-max-tetronimo-x
-           (TetronimoState. key orientation 5 0)))
+          (game/get-max-tetromino-x
+           (TetrominoState. key orientation 5 0)))
     :i :north 6
     :j :north 6
     :l :south 6
@@ -55,12 +55,12 @@
     :z :west 5))
 
 (deftest test-state-to-string
-  (let [expected ["{:current-tetronimo {:key :i, :orientation :north, :x 4, :y 19},"
+  (let [expected ["{:current-tetromino {:key :i, :orientation :north, :x 4, :y 19},"
                   " :frozen-blocks {},"
                   " :level 0,"
                   " :time-since-last-move 0,"
                   " :key-pressed? false}"]
-        actual (game/state-to-string (assoc test-state :current-tetronimo test-tetronimo))]
+        actual (game/state-to-string (assoc test-state :current-tetromino test-tetromino))]
     (is (= expected (clojure.string/split-lines actual)))))
 
 (deftest test-rotate-key-pressed
@@ -94,12 +94,12 @@
             {:key-pressed? true :key-as-keyword :up}))
    "should return false when key was already pressed"))
 
-(deftest test-update-current-tetronimo
+(deftest test-update-current-tetromino
   (testing "should update X based on key pressed"
-    (let [test-tetronimo (:current-tetronimo test-state)]
+    (let [test-tetromino (:current-tetromino test-state)]
       (are [test-key expected-x]
-           (= (assoc test-tetronimo :x expected-x :y 1)
-              (game/update-current-tetronimo
+           (= (assoc test-tetromino :x expected-x :y 1)
+              (game/update-current-tetromino
                test-state
                {:key-pressed? true :key-as-keyword test-key}
                test-keyboard-state))
@@ -109,17 +109,17 @@
         :d 5))))
 
 (deftest test-get-blocks
-  (let [input (TetronimoState. :s :north 0 0)
+  (let [input (TetrominoState. :s :north 0 0)
         expected [[-1 0] [0 0] [0 -1] [1 -1]]
         actual (game/get-blocks input)]
     (is (= expected actual) "returns correct blocks without offset"))
 
-  (let [input (TetronimoState. :s :north 1 2)
+  (let [input (TetrominoState. :s :north 1 2)
         expected [[0 2] [1 2] [1 1] [2 1]]
         actual (game/get-blocks input)]
     (is (= expected actual) "returns correct blocks with offset"))
 
-  (let [input (TetronimoState. :s :east 0 0)
+  (let [input (TetrominoState. :s :east 0 0)
         expected [[0 -1] [0 0] [1 0] [1 1]]
         actual (game/get-blocks input)]
     (is (= expected actual) "returns correct blocks with rotation")))
@@ -143,77 +143,77 @@
    "not touching left wall")
 
   (is
-   (false? (let [test-tetronimo (TetronimoState. :i :west 0 0)
-                 test-state-blocked (assoc test-state :current-tetronimo test-tetronimo)]
+   (false? (let [test-tetromino (TetrominoState. :i :west 0 0)
+                 test-state-blocked (assoc test-state :current-tetromino test-tetromino)]
              (game/can-move-left? test-state-blocked)))
    "touching left wall"))
 
 (deftest test-update-state
-  (testing "current-tetronimo"
-    (let [input (:current-tetronimo test-state)
+  (testing "current-tetromino"
+    (let [input (:current-tetromino test-state)
           expected (update-in input [:y] inc)]
       (is
        (=
         (-> (game/update-state test-state test-keyboard-state 0)
-            :current-tetronimo)
+            :current-tetromino)
         expected)
-       "should move tetronimo if time-since-last-move is 0"))
+       "should move tetromino if time-since-last-move is 0"))
 
-    (let [expected (:current-tetronimo test-state)]
+    (let [expected (:current-tetromino test-state)]
       (is
        (=
         (-> (assoc test-state :time-since-last-move 1)
             (game/update-state test-keyboard-state 0)
-            :current-tetronimo)
+            :current-tetromino)
         expected)
-       "should not move tetronimo if time-since-last-move is not 0"))
+       "should not move tetromino if time-since-last-move is not 0"))
 
     (let [keyboard-state {:key-pressed? true :key-as-keyword :up}
-          input (:current-tetronimo test-state)
+          input (:current-tetromino test-state)
           expected (assoc input :orientation :east :y 1)]
       (is
        (=
         (-> (game/update-state test-state keyboard-state 0)
-            :current-tetronimo)
+            :current-tetromino)
         expected)
-       "should rotate tetronimo if rotate key is pressed"))
+       "should rotate tetromino if rotate key is pressed"))
 
-    (let [input-state (assoc test-state :current-tetronimo test-tetronimo)
-          expected (TetronimoState. :t :north 4 0)]
+    (let [input-state (assoc test-state :current-tetromino test-tetromino)
+          expected (TetrominoState. :t :north 4 0)]
       (is
        (=
         (-> (game/update-state input-state test-keyboard-state 0)
-            :current-tetronimo)
+            :current-tetromino)
         expected)
-       "should replace tetronimo when touching the ground")))
+       "should replace tetromino when touching the ground")))
 
   (testing "frozen-blocks"
     (is
      (= (->
          (game/update-state
-          (assoc test-state :current-tetronimo test-tetronimo)
+          (assoc test-state :current-tetromino test-tetromino)
           test-keyboard-state
           0)
          :frozen-blocks)
         {[2 19] :i [3 19] :i [4 19] :i [5 19] :i})
-     "should freeze current tetronimo when touching the ground")
+     "should freeze current tetromino when touching the ground")
 
     (is
      (= (->
          (game/update-state test-state test-keyboard-state 0)
          :frozen-blocks)
         {})
-     "should not freeze tetronimos when current tetronimo is above the ground")
+     "should not freeze tetrominos when current tetromino is above the ground")
 
-    (let [rotated-tetronimo (assoc test-tetronimo
+    (let [rotated-tetromino (assoc test-tetromino
                                    :orientation :east
                                    :y 18)]
       (is
        (= (->
            (game/update-state
-            (assoc test-state :current-tetronimo rotated-tetronimo)
+            (assoc test-state :current-tetromino rotated-tetromino)
             test-keyboard-state
             0)
            :frozen-blocks)
           {[4 16] :i [4 17] :i [4 18] :i [4 19] :i})
-       "should freeze rotated tetronimo when touching the ground"))))
+       "should freeze rotated tetromino when touching the ground"))))

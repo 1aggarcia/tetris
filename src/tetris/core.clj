@@ -4,7 +4,7 @@
             [tetris.sketch :as sketch]))
 
 (q/defsketch tetris
-  :title "Tetronimos Test"
+  :title "Tetrominos Test"
   :size (sketch/get-game-size)
   ; setup function called only once, during sketch initialization.
   :setup sketch/setup

@@ -46,19 +46,19 @@
   "draw all frozen blocks"
   [frozen-blocks]
   (doseq [[[x y] key] frozen-blocks]
-    (let [color (get-in game/tetronimos [key :color])]
+    (let [color (get-in game/tetrominos [key :color])]
       (apply q/fill color)
       (q/rect (scale x) (scale y) block-size-px block-size-px))))
 
-(defn draw-tetronimo
-  "draw a tetronimo based on the orientation and center position passed in"
-  [tetronimo-state]
-  (let [tetronimo ((:key tetronimo-state) game/tetronimos)
-        orientation (:orientation tetronimo-state)
-        x (:x tetronimo-state)
-        y (:y tetronimo-state)
-        rotated-blocks (game/rotate-blocks (:blocks tetronimo) orientation)]
-    (apply q/fill (:color tetronimo))
+(defn draw-tetromino
+  "draw a tetromino based on the orientation and center position passed in"
+  [tetromino-state]
+  (let [tetromino ((:key tetromino-state) game/tetrominos)
+        orientation (:orientation tetromino-state)
+        x (:x tetromino-state)
+        y (:y tetromino-state)
+        rotated-blocks (game/rotate-blocks (:blocks tetromino) orientation)]
+    (apply q/fill (:color tetromino))
     (doall (for [[x-offset y-offset] rotated-blocks]
              (q/rect
               (+ (scale x) (scale x-offset))
@@ -73,5 +73,5 @@
   (when game/show-grid? (draw-grid)) 
 
   (draw-frozen-blocks (:frozen-blocks state))
-  (draw-tetronimo (:current-tetronimo state))
+  (draw-tetromino (:current-tetromino state))
   (when game/show-state? (draw-state-text state)))

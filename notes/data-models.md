@@ -2,20 +2,20 @@
 
 ## Game State
 
-- Collection of frozen tetronimos
-    - X positions
-    - Y positions
-- Tetronimo currently in motion
+- Map of frozen blocks
+    - Key: [x, y] position
+    - Value: Original tetromino type
+- Tetromino currently in motion
     - Type (enum)
-    - Orientation (enum: 0, 90, 180, 270)
+    - Orientation (enum: North, East, South, West)
     - X position
     - Y position
-- Next N tetronimos (should be able to configure N)
+- Next N tetrominos (should be able to configure N)
 - Current Level
 - Frames since last move 
 
 ## Enums
-- Tetronimos
+- Tetrominos
     - I
     - J
     - L
@@ -28,6 +28,6 @@
 - Welcome screen
 - Gameplay screen
     - Grid (20 x 10) on the left
-    - Next tetronimos top-right
+    - Next tetrominos top-right
     - Score and level on bottom-right
 - Game over screen
