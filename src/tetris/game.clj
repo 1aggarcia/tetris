@@ -65,26 +65,6 @@
            :east [(- y) x]
            :west [y (- x)])) blocks))
 
-(defn get-min-tetromino-x
-  "return the smallest X position occupied by the tetromino passed in"
-  [tetromino-state]
-  (let [tetromino ((:key tetromino-state) tetrominos)
-        rotated (rotate-blocks (:blocks tetromino) (:orientation tetromino-state))]
-    (->> rotated
-         (map (fn [[x _]] x))
-         (apply min)
-         (+ (:x tetromino-state)))))
-
-(defn get-max-tetromino-x
-  "return the largest X position occupied by the tetromino passed in"
-  [tetromino-state]
-  (let [tetromino ((:key tetromino-state) tetrominos)
-        rotated (rotate-blocks (:blocks tetromino) (:orientation tetromino-state))]
-    (->> rotated
-         (map (fn [[x _]] x))
-         (apply max)
-         (+ (:x tetromino-state)))))
-
 (defn get-blocks
   "Calculate the blocks occupied by a tetromino from the tetromino state"
   [{:keys [x y key orientation]}]

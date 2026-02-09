@@ -28,32 +28,6 @@
                    (map #(assoc % :key nil)))) ; key is random so don't compare it
       "should set all properties besides key the same regardless of random seed"))
 
-(deftest test-get-min-tetromino-x
-  (are [key orientation expected]
-       (= expected
-          (game/get-min-tetromino-x
-           (TetrominoState. key orientation 5 0)))
-    :i :north 3
-    :j :north 4
-    :l :south 4
-    :o :south 5
-    :s :east 5
-    :t :east 5
-    :z :west 4))
-
-(deftest test-get-max-tetromino-x
-  (are [key orientation expected]
-       (= expected
-          (game/get-max-tetromino-x
-           (TetrominoState. key orientation 5 0)))
-    :i :north 6
-    :j :north 6
-    :l :south 6
-    :o :south 6
-    :s :east 6
-    :t :east 6
-    :z :west 5))
-
 (deftest test-state-to-string
   (let [expected ["{:current-tetromino {:key :i, :orientation :north, :x 4, :y 19},"
                   " :frozen-blocks {},"
