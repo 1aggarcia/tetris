@@ -108,24 +108,40 @@
 
 (def right-key-pressed? (one-of-keys-pressed [:right :d]))
 
-;; TODO: check for collision with other tetronimos
-(defn can-move-left? [last-state]
-  (>
-   (get-min-tetronimo-x (:current-tetronimo last-state))
-   0))
-
-;; TODO: check for collision with other tetronimos
-(defn can-move-right? [last-state]
-  (<
-   (get-max-tetronimo-x (:current-tetronimo last-state))
-   (dec width)))
-
 (defn block-colliding-bottom?
   [frozen-blocks [x y]]
   (let [y-below (inc y)]
     (or
      (>= y-below height)
      (contains? frozen-blocks [x y-below]))))
+
+(defn block-colliding-left?
+  [frozen-blocks [x y]]
+  (let [x-left (dec x)]
+    (or
+     (< x-left 0)
+     (contains? frozen-blocks [x-left y]))))
+
+(defn block-colliding-right?
+  [frozen-blocks [x y]]
+  (let [x-right (inc x)]
+    (or
+     (>= x-right width)
+     (contains? frozen-blocks [x-right y]))))
+
+(defn can-move-left?
+  [{:keys [current-tetronimo frozen-blocks]}]
+  (->> (get-blocks current-tetronimo)
+       (some (partial block-colliding-left? frozen-blocks))
+       (boolean)
+       (not)))
+
+(defn can-move-right?
+  [{:keys [current-tetronimo frozen-blocks]}]
+  (->> (get-blocks current-tetronimo)
+       (some (partial block-colliding-right? frozen-blocks))
+       (boolean)
+       (not)))
 
 (defn colliding-bottom?
   [{:keys [current-tetronimo frozen-blocks]}]
