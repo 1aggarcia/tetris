@@ -129,14 +129,56 @@
   [last-state]
   (tetromino-colliding? last-state [0 1]))
 
+(defn line-clearable?
+  "Return true iff all blocks in the y coordinate passed in are filled in"
+  [frozen-blocks y]
+  (->> (range width)
+       (map (fn [x] [x y]))
+       (every? #(contains? frozen-blocks %))))
+
+(defn clear-line
+  "Return the frozen blocks with all blocks in the specified y removed"
+  [frozen-blocks y]
+  (->> (range width)
+       (map (fn [x] [x y]))
+       (apply dissoc frozen-blocks)))
+
+(defn clear-lines
+  "Return map of the shape {:frozen-blocks :lines-cleared}
+   
+   frozen-blocks - the new set of blocks after clearing all possible lines
+   lines-cleared - number of lines cleared (for scoring)
+   "
+  [frozen-blocks]
+  (loop [current-blocks frozen-blocks
+         lines-cleared 0
+         y 0]
+    (if (>= y height)
+      {:frozen-blocks current-blocks :lines-cleared lines-cleared}
+      (if
+       (line-clearable? current-blocks y)
+        (recur (clear-line current-blocks y) (inc lines-cleared) (inc y))
+        (recur current-blocks lines-cleared (inc y))))))
+
+(defn freeze-current-tetromino
+  "Copy all blocks from the current tetromino to the frozen blocks"
+  [current-tetromino frozen-blocks]
+  (let [key (:key current-tetromino)
+          blocks (get-blocks current-tetromino)]
+      (reduce #(assoc %1 %2 key) frozen-blocks blocks)))
+
 (defn update-frozen-blocks
-  "Copy all blocks from the current tetromino to the frozen blocks if colliding"
+  "Return the updated state for frozen blocks.
+   Updates include freezing colliding blocks and clearing lines."
   [{:keys [current-tetromino frozen-blocks] :as last-state}]
   ; TODO: allow grace period for blocks to move even if colliding on the bottom
   (if (colliding-bottom? last-state)
-    (let [key (:key current-tetromino)
-          blocks (get-blocks current-tetromino)]
-      (reduce #(assoc %1 %2 key) frozen-blocks blocks))
+    (->> (freeze-current-tetromino current-tetromino frozen-blocks)
+         (clear-lines)
+         ; TODO: Figure out a way to update multiple keys in one function
+         ; so that the :lines-cleared value can be used for scoring
+         ; without re-running `clear-lines`
+         (:frozen-blocks))
     frozen-blocks))
 
 (defn update-tetromino-x [last-x state keyboard-state]

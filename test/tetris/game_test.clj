@@ -98,7 +98,7 @@
         actual (game/get-blocks input)]
     (is (= expected actual) "returns correct blocks with rotation")))
 
-(deftest test-block-colliding-bottom
+(deftest test-block-colliding?
   (are [block-delta block]
        (let [frozen-blocks {[5 5] :i}]
          (true? (game/block-colliding? frozen-blocks block-delta block)))
@@ -121,6 +121,91 @@
                  test-state-blocked (assoc test-state :current-tetromino test-tetromino)]
              (game/can-move-left? test-state-blocked)))
    "touching left wall"))
+
+(deftest test-clear-lines
+  (let [frozen-blocks {;; clearable line
+                       [0 19] :t
+                       [1 19] :t
+                       [2 19] :t
+                       [3 19] :t
+                       [4 19] :t
+                       [5 19] :t
+                       [6 19] :t
+                       [7 19] :t
+                       [8 19] :t
+                       [9 19] :t
+
+                       ;; clearable line
+                       [0 5] :l
+                       [1 5] :l
+                       [2 5] :l
+                       [3 5] :l
+                       [4 5] :l
+                       [5 5] :l
+                       [6 5] :l
+                       [7 5] :l
+                       [8 5] :l
+                       [9 5] :l
+
+                       ;; non-clearable line
+                       [5 1] :z
+                       [19 1] :z}
+        expected {:frozen-blocks {[5 1] :z [19 1] :z}
+                  :lines-cleared 2}
+        actual (game/clear-lines frozen-blocks)]
+    (is (= expected actual))
+    ))
+
+(deftest test-line-clearable?
+  (let [frozen-blocks {[0 19] :t
+                       [1 19] :t
+                       [2 19] :t
+                       [3 19] :t
+                       [4 19] :t
+                       [5 19] :t
+                       [6 19] :t
+                       [7 19] :t
+                       [8 19] :t
+                       [9 19] :t
+
+                       [0 18] :t
+                       ; [0 18] :t
+                       [2 18] :t
+                       [3 18] :t
+                       [4 18] :t
+                       ; [5 18] :t
+                       [6 18] :t
+                       [7 18] :t
+                       [8 18] :t
+                       [9 18] :t}]
+    (is (true? (game/line-clearable? frozen-blocks 19))
+        "should return true if all blocks in line are filled in")
+    (is (false? (game/line-clearable? frozen-blocks 18))
+        "should return false if some blocks in line not filled in")
+    (is (false? (game/line-clearable? frozen-blocks 1))
+        "should return false if no blocks in line not filled in")))
+
+(deftest test-clear-line
+  (let [input {;; blocks that should be cleared
+               [0 5] :l
+               [1 5] :l
+               [2 5] :l
+               [3 5] :l
+               [4 5] :l
+               [5 5] :l
+               [6 5] :l
+               [7 5] :l
+               [8 5] :l
+               [9 5] :l
+
+               ;; blocks that should not be cleared
+               [3 4] :l
+               [5 1] :l}
+        expected {[3 4] :l
+                  [5 1] :l}
+        actual (game/clear-line input 5)]
+    (is (= expected actual)
+        "should clear correct line")))
 
 (deftest test-update-state
   (testing "current-tetromino"
