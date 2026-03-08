@@ -3,7 +3,7 @@
   (:require [clojure.pprint :as pp]))
 
 ; for development purposes
-(def show-grid? true)
+(def show-grid? false)
 (def show-state? true)
 
 (def width 10)
@@ -72,6 +72,7 @@
     (rotate-blocks $ orientation)
     (map (fn [[bx by]] [(+ bx x) (+ by y)]) $)))
 
+; TODO: Figure out a way to account for multiple keys pressed
 (defn one-of-keys-pressed
   "Return a function that determines if one of `keys` is pressed based on
    the state passed in."
@@ -179,13 +180,22 @@
                           :west :north)
                         %))))))
 
+(defn game-over?
+  [last-state]
+  (let [current-y (get-in last-state [:current-tetromino :y])]
+    (and
+     (colliding-bottom? last-state)
+     (<= current-y 0))))
+
 (defn update-state [state keyboard-state random-seed]
-  (-> state
-      (assoc :key-pressed? (:key-pressed? keyboard-state))
-      (update-in [:time-since-last-move] #(mod (inc %) 5))
-      (assoc
-       :frozen-blocks (update-frozen-blocks state)
-       :current-tetromino (update-current-tetromino
-                           state
-                           keyboard-state
-                           random-seed))))
+  (if (game-over? state)
+    state ; TODO: swap to a different screen instead showing scores and retry button
+    (-> state
+        (assoc :key-pressed? (:key-pressed? keyboard-state))
+        (update-in [:time-since-last-move] #(mod (inc %) 5))
+        (assoc
+         :frozen-blocks (update-frozen-blocks state)
+         :current-tetromino (update-current-tetromino
+                             state
+                             keyboard-state
+                             random-seed)))))
