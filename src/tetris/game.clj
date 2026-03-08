@@ -132,9 +132,7 @@
 (defn line-clearable?
   "Return true iff all blocks in the y coordinate passed in are filled in"
   [frozen-blocks y]
-  (->> (range width)
-       (map (fn [x] [x y]))
-       (every? #(contains? frozen-blocks %))))
+  (every? #(contains? frozen-blocks [% y]) (range width)))
 
 (defn clear-line
   "Return the frozen blocks with all blocks in the specified y removed"
@@ -164,8 +162,8 @@
   "Copy all blocks from the current tetromino to the frozen blocks"
   [current-tetromino frozen-blocks]
   (let [key (:key current-tetromino)
-          blocks (get-blocks current-tetromino)]
-      (reduce #(assoc %1 %2 key) frozen-blocks blocks)))
+        blocks (get-blocks current-tetromino)]
+    (into frozen-blocks (for [b blocks] [b key]))))
 
 (defn update-frozen-blocks
   "Return the updated state for frozen blocks.
