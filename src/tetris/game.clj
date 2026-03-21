@@ -134,6 +134,11 @@
   [frozen-blocks y]
   (every? #(contains? frozen-blocks [% y]) (range width)))
 
+(defn line-empty?
+  "Return true iff no blocks in the y coordinate passed in are filled in"
+  [frozen-blocks y]
+  (not-any? #(contains? frozen-blocks [% y]) (range width)))
+
 (defn clear-line
   "Return the frozen blocks with all blocks in the specified y removed"
   [frozen-blocks y]
@@ -158,6 +163,30 @@
         (recur (clear-line current-blocks y) (inc lines-cleared) (inc y))
         (recur current-blocks lines-cleared (inc y))))))
 
+(defn get-block-shifts
+  "Return map: Y -> # of spots to shift down"
+  [frozen-blocks]
+  (let [ys (reverse (range height))]
+    (->> ys
+         (map #(if (line-empty? frozen-blocks %) 1 0))
+         (reductions +)
+         (zipmap ys))))
+
+(defn apply-block-shifts
+  "Return frozen blocks after shifting according to the shifts map"
+  [frozen-blocks shifts]
+  (into {}
+        (map (fn [[[x y] tetromino]]
+               (let [new-y (+ y (get shifts y))]
+                 [[x new-y] tetromino])) frozen-blocks)))
+
+(defn apply-gravity
+  "Return frozen blocks after moving all blocks to their lowest possible
+   vertical position (i.e 'falling')"
+  [frozen-blocks]
+  (let [block-shifts (get-block-shifts frozen-blocks)]
+    (apply-block-shifts frozen-blocks block-shifts)))
+
 (defn freeze-current-tetromino
   "Copy all blocks from the current tetromino to the frozen blocks"
   [current-tetromino frozen-blocks]
@@ -176,7 +205,8 @@
          ; TODO: Figure out a way to update multiple keys in one function
          ; so that the :lines-cleared value can be used for scoring
          ; without re-running `clear-lines`
-         (:frozen-blocks))
+         (:frozen-blocks)
+         (apply-gravity))
     frozen-blocks))
 
 (defn update-tetromino-x [last-x state keyboard-state]

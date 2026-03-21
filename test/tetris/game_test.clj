@@ -153,8 +153,17 @@
         expected {:frozen-blocks {[5 1] :z [19 1] :z}
                   :lines-cleared 2}
         actual (game/clear-lines frozen-blocks)]
-    (is (= expected actual))
-    ))
+    (is (= expected actual))))
+
+(deftest test-line-empty
+  (let [frozen-blocks {[1 19] :t
+                       [2 18] :l
+                       [4 16] :z}]
+    (is (false? (game/line-empty? frozen-blocks 19))
+        "should return false when line has any blocks")
+
+    (is (true? (game/line-empty? frozen-blocks 17))
+        "should return true when line has no blocks")))
 
 (deftest test-line-clearable?
   (let [frozen-blocks {[0 19] :t
@@ -206,6 +215,21 @@
         actual (game/clear-line input 5)]
     (is (= expected actual)
         "should clear correct line")))
+
+(deftest test-apply-gravity
+  (let [input {[1 19] :t
+               [2 18] :l
+               [4 16] :z
+               [5 16] :z
+               [3 15] :z}
+        expected {[1 19] :t
+                  [2 18] :l
+                  [4 17] :z
+                  [5 17] :z
+                  [3 16] :z}
+        actual (game/apply-gravity input)]
+    (is (= expected actual)
+        "should move frozen blocks down correctly")))
 
 (deftest test-update-state
   (testing "current-tetromino"
