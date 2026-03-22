@@ -89,6 +89,8 @@
 
 (def right-key-pressed? (one-of-keys-pressed [:right :d]))
 
+(def drop-key-pressed? (one-of-keys-pressed [:space]))
+
 (defn block-colliding?
   "Determine if the block passed is colliding with one of the frozen blocks.
    
@@ -194,19 +196,30 @@
         blocks (get-blocks current-tetromino)]
     (into frozen-blocks (for [b blocks] [b key]))))
 
+(defn drop-current-tetromino [current-tetromino frozen-blocks]
+  (loop [tetromino current-tetromino]
+    (if (colliding-bottom? {:current-tetromino tetromino
+                            :frozen-blocks frozen-blocks})
+      (freeze-current-tetromino tetromino frozen-blocks)
+      (recur (update-in tetromino [:y] inc)))))
+
 (defn update-frozen-blocks
   "Return the updated state for frozen blocks.
    Updates include freezing colliding blocks and clearing lines."
-  [{:keys [current-tetromino frozen-blocks] :as last-state}]
+  [{:keys [current-tetromino frozen-blocks] :as last-state} keyboard-state]
   ; TODO: allow grace period for blocks to move even if colliding on the bottom
-  (if (colliding-bottom? last-state)
-    (->> (freeze-current-tetromino current-tetromino frozen-blocks)
-         (clear-lines)
-         ; TODO: Figure out a way to update multiple keys in one function
-         ; so that the :lines-cleared value can be used for scoring
-         ; without re-running `clear-lines`
-         (:frozen-blocks)
-         (apply-gravity))
+
+  (if (or (drop-key-pressed? last-state keyboard-state) (colliding-bottom? last-state))
+    (as-> frozen-blocks $
+      (if (drop-key-pressed? last-state keyboard-state)
+        (drop-current-tetromino current-tetromino $)
+        $)
+      (if (colliding-bottom? last-state)
+        (freeze-current-tetromino current-tetromino $)
+        $)
+      (clear-lines $)
+      (:frozen-blocks $)
+      (apply-gravity $))
     frozen-blocks))
 
 (defn update-tetromino-x [last-x state keyboard-state]
@@ -228,7 +241,7 @@
    - Spawn a new tetromino if the current one touches the ground
    "
   [state keyboard-state random-seed]
-  (if (colliding-bottom? state)
+  (if (or (colliding-bottom? state) (drop-key-pressed? state keyboard-state))
     ; TODO: Game over instead if the block is also colliding on top
     ; Right now this will spawn new blocks on every frame if it collides on top
     (create-new-tetromino random-seed)
@@ -264,7 +277,7 @@
         (assoc :key-pressed? (:key-pressed? keyboard-state))
         (update-in [:time-since-last-move] #(mod (inc %) 5))
         (assoc
-         :frozen-blocks (update-frozen-blocks state)
+         :frozen-blocks (update-frozen-blocks state keyboard-state)
          :current-tetromino (update-current-tetromino
                              state
                              keyboard-state
