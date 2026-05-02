@@ -8,6 +8,9 @@
 
 (def width 10)
 (def height 20)
+(def lock-delay
+  "number of frames to allow tetromino to touch the ground before freezing"
+  15)
 
 (def tetrominos {:i {:color [0 255 255]
                      :blocks [[-2 0] [-1 0] [0 0] [1 0]]}
@@ -27,10 +30,12 @@
 
 (def tetromino-keys (keys tetrominos))
 
+;; TODO: track and show lines cleared
 (defrecord State [current-tetromino
                   frozen-blocks
                   level
                   time-since-last-move
+                  time-touching-ground
                   key-pressed?])
 
 (defn state-to-string
@@ -52,7 +57,7 @@
     (TetrominoState. rand-key :north 4 0)))
 
 (defn get-init-state []
-  (State. (create-new-tetromino (generate-random-seed)) {} 0 0 false))
+  (State. (create-new-tetromino (generate-random-seed)) {} 0 0 0 false))
 
 (defn rotate-blocks
   "rotate the blocks such that they are pointing in one of four directions:
@@ -102,7 +107,6 @@
   (let [new-x (+ x dx)
         new-y (+ y dy)]
     (or
-     ; TODO: detect collision on top
      (< new-x 0)
      (>= new-x width)
      (>= new-y height)
@@ -203,13 +207,16 @@
       (freeze-current-tetromino tetromino frozen-blocks)
       (recur (update-in tetromino [:y] inc)))))
 
+(defn- should-freeze-current-tetromino [state keyboard-state]
+  (or
+   (and (colliding-bottom? state) (>= (:time-touching-ground state) lock-delay))
+   (drop-key-pressed? state keyboard-state)))
+
 (defn update-frozen-blocks
   "Return the updated state for frozen blocks.
    Updates include freezing colliding blocks and clearing lines."
   [{:keys [current-tetromino frozen-blocks] :as last-state} keyboard-state]
-  ; TODO: allow grace period for blocks to move even if colliding on the bottom
-
-  (if (or (drop-key-pressed? last-state keyboard-state) (colliding-bottom? last-state))
+  (if (should-freeze-current-tetromino last-state keyboard-state)
     (as-> frozen-blocks $
       (if (drop-key-pressed? last-state keyboard-state)
         (drop-current-tetromino current-tetromino $)
@@ -234,6 +241,7 @@
     (inc last-x)
     :else last-x))
 
+;; TODO separate behavior by keys/events and not fields
 (defn update-current-tetromino
   "
    - Move the tetromino down if it is time to do so
@@ -241,14 +249,16 @@
    - Spawn a new tetromino if the current one touches the ground
    "
   [state keyboard-state random-seed]
-  (if (or (colliding-bottom? state) (drop-key-pressed? state keyboard-state))
-    ; TODO: Game over instead if the block is also colliding on top
-    ; Right now this will spawn new blocks on every frame if it collides on top
+  (if (should-freeze-current-tetromino state keyboard-state)
     (create-new-tetromino random-seed)
     (let [tetromino (:current-tetromino state)]
       (-> tetromino
           (update-in [:y]
-                     (if (= (:time-since-last-move state) 0) inc identity))
+                     (if
+                      (and
+                       (= (:time-since-last-move state) 0)
+                       (not (colliding-bottom? state)))
+                       inc identity))
 
           (update-in [:x]
                      #(update-tetromino-x % state keyboard-state))
@@ -262,6 +272,19 @@
                           :south :west
                           :west :north)
                         %))))))
+
+(defn- update-time-touching-ground
+  "If current tetromino is touching the ground, returns incremented time
+   If time is maxed out or drop key is pressed, returns 0
+   Otherwise, returns the same time value"
+  [state keyboard-state]
+  (if (colliding-bottom? state)
+    (if (or
+         (>= (:time-touching-ground state) lock-delay)
+         (drop-key-pressed? state keyboard-state))
+      0
+      (inc (:time-touching-ground state)))
+    (:time-touching-ground state)))
 
 (defn game-over?
   [last-state]
@@ -281,4 +304,5 @@
          :current-tetromino (update-current-tetromino
                              state
                              keyboard-state
-                             random-seed)))))
+                             random-seed)
+         :time-touching-ground (update-time-touching-ground state keyboard-state)))))

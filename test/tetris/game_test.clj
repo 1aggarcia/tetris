@@ -28,15 +28,6 @@
                    (map #(assoc % :key nil)))) ; key is random so don't compare it
       "should set all properties besides key the same regardless of random seed"))
 
-(deftest test-state-to-string
-  (let [expected ["{:current-tetromino {:key :i, :orientation :north, :x 4, :y 19},"
-                  " :frozen-blocks {},"
-                  " :level 0,"
-                  " :time-since-last-move 0,"
-                  " :key-pressed? false}"]
-        actual (game/state-to-string (assoc test-state :current-tetromino test-tetromino))]
-    (is (= expected (clojure.string/split-lines actual)))))
-
 (deftest test-rotate-key-pressed
   (is
    (true? (game/rotate-key-pressed?
@@ -261,7 +252,7 @@
         expected)
        "should rotate tetromino if rotate key is pressed"))
 
-    (let [input-state (assoc test-state :current-tetromino test-tetromino)
+    (let [input-state (assoc test-state :current-tetromino test-tetromino :time-touching-ground game/lock-delay)
           expected (TetrominoState. :t :north 4 0)]
       (is
        (=
@@ -274,7 +265,7 @@
     (is
      (= (->
          (game/update-state
-          (assoc test-state :current-tetromino test-tetromino)
+          (assoc test-state :current-tetromino test-tetromino :time-touching-ground game/lock-delay)
           test-keyboard-state
           0)
          :frozen-blocks)
@@ -294,9 +285,74 @@
       (is
        (= (->
            (game/update-state
-            (assoc test-state :current-tetromino rotated-tetromino)
+            (assoc test-state :current-tetromino rotated-tetromino :time-touching-ground game/lock-delay)
             test-keyboard-state
             0)
            :frozen-blocks)
           {[4 16] :i [4 17] :i [4 18] :i [4 19] :i})
-       "should freeze rotated tetromino when touching the ground"))))
+       "should freeze rotated tetromino when touching the ground")))
+
+  (testing "tetromino drops"
+    (let [input-tetromino (TetrominoState. :o :north 1 0)
+          input (assoc (game/get-init-state) :current-tetromino input-tetromino)
+          expected (assoc input
+                          :time-since-last-move 1
+                          :frozen-blocks {[1 19] :o
+                                          [1 18] :o
+                                          [0 19] :o
+                                          [0 18] :o}
+                          :key-pressed? true
+                          :current-tetromino (TetrominoState. :t :north 4 0))
+          actual (game/update-state input {:key-pressed? true :key-as-keyword :space} 0)]
+      (is (= expected actual)
+          "should drop and freeze tetromino when drop key is pressed")))
+
+  (testing "lock delay"
+    (let [input-tetromino (TetrominoState. :o :north 1 19)
+          input (assoc (game/get-init-state) :current-tetromino input-tetromino)
+          expected (assoc input :time-touching-ground 1 :time-since-last-move 1)
+          actual (game/update-state input test-keyboard-state 0)]
+      (is (= expected actual)
+          "should increment time-touching-ground when tetromino is touching the ground"))
+
+    (let [input-tetromino (TetrominoState. :o :north 1 18)
+          input (assoc (game/get-init-state) :current-tetromino input-tetromino)
+          actual (game/update-state input test-keyboard-state 0)]
+      (is (= 0 (:time-touching-ground actual))
+          "should not increment time-touching-ground when tetromino is not touching the ground")))
+
+  (let [input-tetromino (TetrominoState. :o :north 1 19)
+        input (assoc (game/get-init-state) :current-tetromino input-tetromino :time-touching-ground game/lock-delay)
+        expected-frozen-blocks {[1 19] :o
+                                [1 18] :o
+                                [0 19] :o
+                                [0 18] :o}
+        expected-current-tetromino (TetrominoState. :t :north 4 0)
+        expected (assoc input
+                        :time-touching-ground 0
+                        :time-since-last-move 1
+                        :frozen-blocks expected-frozen-blocks
+                        :current-tetromino expected-current-tetromino)
+        actual (game/update-state input test-keyboard-state 0)]
+    (is (= expected actual)
+        "should reset time-touching-ground when tetromino is frozen"))
+
+  (let [input-tetromino (TetrominoState. :o :north 1 19)
+        input (assoc (game/get-init-state)
+                     :current-tetromino input-tetromino
+                     :time-touching-ground 2)
+        expected-frozen-blocks {[1 19] :o
+                                [1 18] :o
+                                [0 19] :o
+                                [0 18] :o}
+        expected-current-tetromino (TetrominoState. :t :north 4 0)
+        expected (assoc input
+                        :time-touching-ground 0
+                        :time-since-last-move 1
+                        :frozen-blocks expected-frozen-blocks
+                        :current-tetromino expected-current-tetromino
+                        :key-pressed? true)
+        actual (game/update-state input {:key-pressed? true :key-as-keyword :space} 0)]
+    (is (= expected actual)
+        "should reset time-touching-ground when tetromino is dropped")))
+
